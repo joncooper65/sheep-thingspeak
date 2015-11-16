@@ -1,0 +1,39 @@
+ssh jcoop@192.171.139.68
+mongo envdata -u iot -p xyz
+db.envdata.count()
+
+-get out just lat lon
+db.envdata.find({},{lat: 1, lon: 1, _id:0})
+
+> db.envdata.distinct("sensor")
+[ "gps", "soil", "acc" ]
+
+db.envdata.find({"sensor": "soil"},{sensor: 1, timestamp: 1, surface_flow: 1, _id:0})
+
+db.envdata.find({"sensor": "soil", timestamp: {$gte: ISODate("2010-04-29T00:00:00.000Z"), $lte: ISODate("2015-07-13T11:53:01.452Z")},{sensor: 1, timestamp: 1, surface_flow: 1, _id:0})
+
+db.envdata.find(
+  {
+    "sensor": "soil", 
+    timestamp: {
+      $gte: ISODate("2010-04-29T00:00:00.000Z"), 
+      $lte: ISODate("2015-07-13T11:53:01.452Z")
+    }
+  },
+  {
+    timestamp: 1, 
+    air_humidity_1: 1,
+    air_humidity_2: 1,
+    air_humidity_3: 1,
+    soil_moisture_1: 1,
+    soil_moisture_2: 1,
+    soil_moisture_3: 1,
+    soil_temp_1: 1,
+    soil_temp_2: 1,
+    soil_temp_3: 1,
+    surface_flow: 1,
+    trial: 1,
+    _id:0
+  }
+)
+
