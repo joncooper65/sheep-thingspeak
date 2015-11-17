@@ -15,9 +15,9 @@ def senddata(measurement):
     'field2': measurement["air_temp_1"],
     'field3': measurement["air_temp_2"],
     'field4': measurement["soil_moisture_1"],
-    'field5': measurement["soil_moisture_2"],
-    'field6': measurement["soil_temp_1"],
-    'field7': measurement["soil_temp_2"],
+    'field5': measurement["soil_temp_1"],
+    'field6': measurement["soil_temp_2"],
+    'field7': measurement["soil_temp_3"],
     'field8': measurement["surface_flow"]
   }
   postdata = urllib.urlencode(values)
