@@ -1,5 +1,5 @@
 ssh jcoop@192.171.139.68
-mongo envdata -u iot -p xyz
+mongo envdata -u iot -p password
 db.envdata.count()
 
 -get out just lat lon
