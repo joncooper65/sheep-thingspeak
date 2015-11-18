@@ -1,11 +1,14 @@
 #!/usr/bin/env
 
+import json
 import os
+import pymongo
 import time
 import urllib
 import urllib2
 import unicodedata
-from pymongo import MongoClient
+#from pymongo import MongoClient
+from dateutil.parser import *
 
 def senddata(measurement):
   values = {
@@ -21,7 +24,7 @@ def senddata(measurement):
     'field8': measurement["surface_flow"]
   }
   postdata = urllib.urlencode(values)
-  req = urllib2.Request(THINGSPEAKURL,postdata)
+  req = urllib2.Request(THINGSPEAKURL + "/update",postdata)
   log = time.strftime("%d-%m-%Y,%H:%M:%S") + ","
   try:
     response = urllib2.urlopen(req, None, 5)
@@ -29,30 +32,28 @@ def senddata(measurement):
     response.close()
     log = log + 'Update ' + html_string
   except urllib2.HTTPError, e:
-    log = log + 'Server could not fulfill the request. Error code: ' + e.code
+    log = log + 'Server could not fulfill the request. Error code: ' + str(e.code)
   except urllib2.URLError, e:
     log = log + 'Failed to reach server. Reason: ' + e.reason
   except:
     log = log + 'Unknown error'
   print log  
 
-def getandsend():
+def getandsend(latestThingspeakMeasurement):
   print 'getting data out of mongodb'
 
   connectionUri = "mongodb://{0}:{1}@localhost/envdata".format(MONGOUSER, MONGOPASSWORD, MONGOUSERDB)
-  print connectionUri
-  client = MongoClient(connectionUri)
+  client = pymongo.MongoClient(connectionUri)
   #note: the database and collection are both called envdata
   db = client.envdata
   measurements = db.envdata
 
   #Limit to just soil sensors
   query = {
-    "sensor": "soil"
- #   "timestamp": {
- #     "$gte": "2010-04-29T00:00:00.000Z", 
- #     "$lte": "2015-07-13T11:53:01.452Z"
- #   }
+    "sensor": "soil",
+    "timestamp": {
+      "$gte": latestThingspeakMeasurement
+    }
   }
 
   projection = {
@@ -74,10 +75,31 @@ def getandsend():
     "_id":1
   }
 
-  for measurement in measurements.find(query,projection):
-    #Thingspeak is limited to one update per channel per 15s
-    senddata(measurement)
-    time.sleep(15)
+  previousTimestamp = ""
+  #The batchsize added to the following query ensures we don't hit mongodb's 10 min timeout on the cursor
+  for measurement in measurements.find(query,projection).sort([("timestamp", pymongo.ASCENDING)]).batch_size(20):
+    #The data contains duplicate records, remove them using the timestamp as a test
+    if (measurement["timestamp"] != previousTimestamp):
+      senddata(measurement)
+      #Thingspeak is limited to one update per channel per 15s
+      time.sleep(15)
+    previousTimestamp = measurement["timestamp"]
+
+def latestThingspeakUpdate(url):
+  defaultStartDate = parse('2000-01-01T00:00:00Z')
+  url = url + "?key=" + THINGSPEAKKEY
+  try:
+    data = urllib2.urlopen(url).read()
+    if ("\"-1\"" == data):
+      return defaultStartDate
+    else:
+      datadict = json.loads(data)
+      latestUpdate = datadict["created_at"]
+      return parse(latestUpdate)
+  except urllib2.HTTPError, e:
+    print e
+  except urllib2.URLError, e:
+    print "Network error: {}".format(e.reason.args[1])
 
 def config():
   global MONGOUSER
@@ -96,7 +118,8 @@ def config():
 
 def main():
   config()
-  getandsend()
+  latestThingspeakMeasurement =  latestThingspeakUpdate(THINGSPEAKURL + "/channels/66379/feeds/last")
+  getandsend(latestThingspeakMeasurement)
 
 if __name__=="__main__":
   main()
