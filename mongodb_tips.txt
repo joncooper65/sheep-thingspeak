@@ -1,12 +1,29 @@
 ssh jcoop@192.171.139.68
-mongo envdata -u iot -p password
+mongo envdata -u iot -p tlTc91HQlsQG
 db.envdata.count()
 
 -get out just lat lon
 db.envdata.find({},{lat: 1, lon: 1, _id:0})
+db.envdata.find({"sensor":"acc","timestamp":{$gte: ISODate("2015-07-17T06:48:15.000Z")}},{"x": 1, "y": 1, _id:0})
 
 > db.envdata.distinct("sensor")
 [ "gps", "soil", "acc" ]
+
+db.envdata.group(
+  {
+    key: {
+      "sensor": 1, "src_addr": 1
+    },
+    reduce: function(curr, result){
+      result.total += 1;
+    },
+    initial: {total: 0}
+  }
+)
+
+#mongochef query
+{"sensor":"soil"} #1707 records
+{"sensor":"soil","timestamp":{$gte: ISODate("2000-07-28T08:03:03.000Z")}} #708 records - caused by non-iso timestamp strings - we actually need to get back all records (1707)
 
 db.envdata.find({"sensor": "soil"},{sensor: 1, timestamp: 1, surface_flow: 1, _id:0})
 
