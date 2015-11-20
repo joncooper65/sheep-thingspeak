@@ -55,7 +55,7 @@ def sendUpdatesSince(latestThingspeakMeasurement, sensor, parameters, thingspeak
   query = {
     "sensor": sensor,
     "timestamp": {
-      "$gte": latestThingspeakMeasurement
+      "$gt": latestThingspeakMeasurement
     }
   }
 
